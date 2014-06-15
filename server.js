@@ -78,7 +78,6 @@ compiler.on('redrawn', function(a) {
     console.log("\n\n\nredrawn here\n\n\n")
     io.sockets.emit('redrawn', a)
 })
-compiler.emit('redrawn', 'digraph a{ a->b }')
 
 
 
