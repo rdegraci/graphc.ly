@@ -37,7 +37,6 @@
             })
 
             sock.on('redrawn', function(imagedata) {
-                console.log('imagedata: ', imagedata)
                 $('#graph').attr('src', 'data:image/gif;base64, ' + imagedata.image)
             })
                         
@@ -58,6 +57,7 @@
             sock.on('modify', function(val) { 
               var currentPos = editor.getCursor(); 
                 network_update=true
+                console.log('modifying'+(new Date()))
                 editor.setValue(val)
                 editor.setCursor(currentPos); 
             })
@@ -108,6 +108,8 @@
             position: absolute;
             bottom: 45px;
             right: 0;
+            max-height: 93%;
+            max-width: 99%;
         }
     
         #etc {
