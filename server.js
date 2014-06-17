@@ -34,12 +34,30 @@ var unlock_timeout = null
 var recompiling = false
 var needs_recompile = false
 
+var saves = {}
+
+var users = {}
+
 var compiler = new Compiler(c_program, syntax); 
 
+function saveSavesToFile() {
+  fs.writeFile("./saves.json", JSON.stringify(saves), function() {})
+}
+function readSavesFromFile() {
+  fs.readFile("./saves.json", function(data){
+    saves = JSON.parse(data)
+  })
+}
+
 io.sockets.on('connection', function(client) {
+  users[client.id] = null
+  io.sockets.emit('users', Object.keys(users))
+
   client.emit('modify', c_program)
+  client.emit( unlock_timeout ? 'lock' : 'unlock' )
   client.emit('syntax', syntax)
   client.emit('stdout', { timestamp: (new Date()).getTime(), text: stdout, error: stderr })
+  compiler.recompile(c_program)
 
   client.on('syntax', function(message) {
     syntax = message
@@ -49,12 +67,13 @@ io.sockets.on('connection', function(client) {
   })
 
   client.on('modify', function(message) {
-    if (unlock_timeout != null ) clearInterval(unlock_timeout)
+    if (message == "") return
+    if (unlock_timeout != null) clearTimeout(unlock_timeout)
+    if (unlock_timeout == null) client.broadcast.emit('lock')
     unlock_timeout = setTimeout(function() {
       io.sockets.emit('unlock')
       unlock_timeout = null
     }, 5000)
-    client.broadcast.emit('lock')
 
     var current = {"program":c_program}; 
     var mod = {"program":message}; 
@@ -62,9 +81,20 @@ io.sockets.on('connection', function(client) {
     var delta = jsondiffpatch.diff(current, mod);
     c_program = jsondiffpatch.patch(current, delta).program; 
 
-    client.broadcast.emit('modify', c_program)
+    //client.broadcast.emit('modify', c_program)
 
     compiler.recompile(c_program)
+  })
+
+  client.on('saved', function(response) {
+    console.log("#### Saving save:", response)
+    saves[response.p] = response.k
+    saveSavesToFile()
+  })
+
+  client.on('disconnect', function() {
+    delete users[client.id]
+    client.broadcast.emit('users', Object.keys(users))
   })
 })
 
@@ -72,6 +102,7 @@ io.sockets.on('connection', function(client) {
 compiler.on('recompiled', function(a){
   console.log('observed a recompiled event')
     io.sockets.emit('stdout', a); 
+    io.sockets.emit('modify', c_program)
 })
 
 compiler.on('redrawn', function(a) {
