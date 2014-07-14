@@ -19,8 +19,8 @@ app.configure(function(){
     app.use(express.errorHandler({ dumpExceptions: true, showStack: true }))
 })
 
-//var io = socketio.listen(app, { 'log level': 1 })
-var io = socketio.listen(app)
+var io = socketio.listen(app, { 'log level': 1 })
+//var io = socketio.listen(app)
 
 
 var c_program = '#include <stdio.h>\n\nint main(void) {\n  printf("asdf\\n")\n  return 0;\n}\n'
@@ -100,13 +100,11 @@ io.sockets.on('connection', function(client) {
 
 
 compiler.on('recompiled', function(a){
-  console.log('observed a recompiled event')
     io.sockets.emit('stdout', a); 
     io.sockets.emit('modify', c_program)
 })
 
 compiler.on('redrawn', function(a) {
-    console.log("\n\n\nredrawn here\n\n\n")
     io.sockets.emit('redrawn', a)
 })
 
